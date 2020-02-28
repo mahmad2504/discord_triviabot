@@ -430,7 +430,7 @@ async def main():
     #print('Stopping bot...')
     #settings.admins.append(int(12345))
     #await settings.pushChanges()
-    await asyncio.gather(client.start(conf.TOKEN), postSomething())
+    await asyncio.gather(client.start(conf.ID), postSomething())
 
 
 
