@@ -17,6 +17,8 @@ import ast
 import tracemalloc
 import logging
 
+import conf;
+
 scriptName = str(os.path.basename(__file__).split(".")[0])
 print("Starting", scriptName)
 
@@ -71,14 +73,13 @@ class botSettings:
 
     async def pushChanges(self):
         await execSQL(
-            "UPDATE mumtazahmad204_settings SET `ownerId` = ?, `targetChannel` = ?,"
+            "UPDATE arabicbot_settings SET `ownerId` = ?, `targetChannel` = ?,"
             " `currentQuestion` = ?, `payload` = ?, `value` = ?, interval = ?, admins = ?  WHERE indDbId = ?",
             self.ownerId, self.targetChannel, self.currentQuestion, self.payload, str(self.value), self.interval,
             str(self.admins), self.indDbId)
 
-
 async def getSettings(inDbId: int = 1):
-    res = await readOneSQL("SELECT * FROM mumtazahmad204_settings WHERE indDbId = ?", inDbId)
+    res = await readOneSQL("SELECT * FROM arabicbot_settings WHERE indDbId = ?", inDbId)
     if res is None:
         return None
     else:
@@ -93,12 +94,12 @@ class botUser:
         self.name: str = str(name)
 
     async def pushChanges(self):
-        await execSQL("UPDATE mumtazahmad204_user SET `score` = ?, `participatedIn` = ?, `name` = ? WHERE userId = ?",
+        await execSQL("UPDATE arabicbot_user SET `score` = ?, `participatedIn` = ?, `name` = ? WHERE userId = ?",
                       float(self.score), str(self.participatedIn), self.name, self.userId)
 
 
 async def getUser(inDbId: int):
-    res = await readOneSQL("SELECT * FROM mumtazahmad204_user WHERE userId = ?", inDbId)
+    res = await readOneSQL("SELECT * FROM arabicbot_user WHERE userId = ?", inDbId)
     if res is None:
         return None
     else:
@@ -113,12 +114,12 @@ class botQuestion:
         self.answer: str = str(answer)
 
     async def pushChanges(self):
-        await execSQL("UPDATE mumtazahmad204_question SET `score` = ?, `question` = ?, `answer` = ? WHERE inDbId = ?",
+        await execSQL("UPDATE arabicbot_question SET `score` = ?, `question` = ?, `answer` = ? WHERE inDbId = ?",
                       float(self.score), self.question, self.answer, self.inDbId)
 
 
 async def getQuestion(inDbId: int):
-    res = await readOneSQL("SELECT * FROM mumtazahmad204_question WHERE inDbId = ?", inDbId)
+    res = await readOneSQL("SELECT * FROM arabicbot_question WHERE inDbId = ?", inDbId)
     if res is None:
         return None
     else:
@@ -150,7 +151,7 @@ class MyClient(discord.Client):
             # await message.add_reaction('\N{TIMER CLOCK}')
             currentUser = await getUser(sender.id)
             if not currentUser:
-                await execSQL("insert into mumtazahmad204_user (userId, name) "
+                await execSQL("insert into arabicbot_user (userId, name) "
                               "VALUES (?, ?)", sender.id, f"{sender.name}#{sender.discriminator}")
                 currentUser = await getUser(sender.id)
             else:
@@ -159,7 +160,7 @@ class MyClient(discord.Client):
                     await currentUser.pushChanges()
 
             if message.content == '/score':
-                allUsers = await readAllSQL("SELECT * FROM mumtazahmad204_user order by score DESC limit 25")
+                allUsers = await readAllSQL("SELECT * FROM arabicbot_user order by score DESC limit 25")
                 text = "Top-25 users:"
                 for n, user in enumerate(allUsers):
                     user = botUser(*user)
@@ -204,10 +205,10 @@ class MyClient(discord.Client):
                                 question = question[1:]
                             while question.endswith(' '):
                                 question = question[:-1]
-                            await execSQL("insert into mumtazahmad204_question (question, answer) VALUES (?, ?)",
+                            await execSQL("insert into arabicbot_question (question, answer) VALUES (?, ?)",
                                           question, answer)
                             lastInsertedRow = (await readOneSQL(
-                                "select last_insert_rowid() from mumtazahmad204_question"))[0]
+                                "select last_insert_rowid() from arabicbot_question"))[0]
                             await channel.send(f"Done, added to database with id `{lastInsertedRow}`")
                             settings.payload = ""
                             await settings.pushChanges()
@@ -217,17 +218,17 @@ class MyClient(discord.Client):
                         await channel.send("Okay, please send a new phrase in format:\n"
                                            "english phrase -> hebrew phrase\n`(with -> )`")
                     elif message.content == '/list':
-                        allPhrases = await readAllSQL("select * from mumtazahmad204_question")
+                        allPhrases = await readAllSQL("select * from arabicbot_question")
                         text = 'here is a list of all questions -> answers:'
                         for phrase in allPhrases:
                             phrase = botQuestion(*phrase)
                             text = f"{text}\n{phrase.inDbId}) {phrase.question} -> {phrase.answer}"
                         await channel.send(text)
                     elif message.content == '/score':
-                        allUsers = await readAllSQL("SELECT * FROM mumtazahmad204_user order by score DESC limit 25")
+                        allUsers = await readAllSQL("SELECT * FROM arabicbot_user order by score DESC limit 25")
                         currentUser = await getUser(sender.id)
                         if not currentUser:
-                            await execSQL("insert into mumtazahmad204_user (userId, name) "
+                            await execSQL("insert into arabicbot_user (userId, name) "
                                           "VALUES (?, ?)", sender.id, f"{sender.name}#{sender.discriminator}")
                             currentUser = await getUser(sender.id)
                         else:
@@ -245,14 +246,14 @@ class MyClient(discord.Client):
                         if not whatToDelete.isnumeric() or not (await getQuestion(int(whatToDelete))):
                             await channel.send("Could not find such id.")
                             return
-                        await execSQL("delete from mumtazahmad204_question where inDbId = ?", int(whatToDelete))
+                        await execSQL("delete from arabicbot_question where inDbId = ?", int(whatToDelete))
                         await channel.send("Done.")
                     elif '/reset' in message.content:
                         whatToDelete = message.content.replace("/reset", "").replace(" ", "")
                         if not whatToDelete.isnumeric():
                             await channel.send("Wrong user id format")
                             return
-                        await execSQL("update mumtazahmad204_user set score = 0, participatedIn = '[]' "
+                        await execSQL("update arabicbot_user set score = 0, participatedIn = '[]' "
                                       "where userId = ?", int(whatToDelete))
                         await channel.send("Done.")
                     elif '/file' in message.content:
@@ -284,11 +285,11 @@ class MyClient(discord.Client):
                                         question = question[:-1]
                                     whatToAdd.append(
                                         execSQL(
-                                            "insert into mumtazahmad204_question (question, answer) VALUES (?, ?)",
+                                            "insert into arabicbot_question (question, answer) VALUES (?, ?)",
                                             question, answer))
 
                             if whatToAdd:
-                                await execSQL('delete from  mumtazahmad204_question')
+                                await execSQL('delete from  arabicbot_question')
                             else:
                                 await channel.send('There was 0 questions, so that was ignored.')
                                 return
@@ -337,10 +338,10 @@ class MyClient(discord.Client):
                                            "/interval MINUTES - change interval between questions (current interval is"
                                            f" {settings.interval} minutes)`")
                 elif message.content == '/score':
-                    allUsers = await readAllSQL("SELECT * FROM mumtazahmad204_user order by score DESC limit 25")
+                    allUsers = await readAllSQL("SELECT * FROM arabicbot_user order by score DESC limit 25")
                     currentUser = await getUser(sender.id)
                     if not currentUser:
-                        await execSQL("insert into mumtazahmad204_user (userId, name) "
+                        await execSQL("insert into arabicbot_user (userId, name) "
                                       "VALUES (?, ?)", sender.id, f"{sender.name}#{sender.discriminator}")
                         currentUser = await getUser(sender.id)
                     else:
@@ -381,7 +382,7 @@ async def postSomething():
         settings = await getSettings()
         interval = settings.interval * 60
         if int(time.time()) - lastPost > interval:
-            allQuestions = await readAllSQL("select * from mumtazahmad204_question")
+            allQuestions = await readAllSQL("select * from arabicbot_question")
             if not allQuestions:
                 await asyncio.sleep(1)
                 continue
@@ -397,20 +398,36 @@ async def postSomething():
 async def main():
     print('Checking database...')
     await execSQL(
-        "create table if not exists mumtazahmad204_settings (indDbId INTEGER DEFAULT 0 "
+        "create table if not exists arabicbot_settings (indDbId INTEGER DEFAULT 0 "
         "primary key, ownerId INTEGER DEFAULT 326190204, targetChannel INTEGER DEFAULT 0, "
         "currentQuestion INTEGER DEFAULT 0, `payload` STRING DEFAULT '', `value` STRING DEFAULT '{}', `interval`"
         " INTEGER DEFAULT 5, admins string default '[]')")
     await execSQL(
-        "create table if not exists mumtazahmad204_user (userId INTEGER DEFAULT"
+        "create table if not exists arabicbot_user (userId INTEGER DEFAULT"
         " 0 primary key, score DOUBLE DEFAULT 0, `participatedIn` STRING DEFAULT '[]', `name` default '')")
     await execSQL(
-        "create table if not exists mumtazahmad204_question (inDbId INTEGER DEFAULT "
+        "create table if not exists arabicbot_question (inDbId INTEGER DEFAULT "
         "0 primary key autoincrement , score DOUBLE DEFAULT 1.0, "
         "`question` STRING DEFAULT '', `answer` STRING DEFAULT '')")
-    print(await readAllSQL("select * from mumtazahmad204_question"))
+    #print(await readAllSQL("select * from arabicbot_question"))
     print('Starting bot...')
-    await asyncio.gather(client.start('NjgyNjIyNjU5NTI3NDQyNDcy.XlfsRA.AIdHCn87UnRMiS54ocbFIdYGYCQ'), postSomething())
+    settings_counts= len(await readAllSQL("select * from arabicbot_settings"))
+    if settings_counts == 0:
+        id=1
+        ownerId = conf.OWNERID
+        targetChannel = conf.CHANNELID
+        interval = conf.INTERVAL
+        admin = [conf.OWNERID]
+        await execSQL(
+        "INSERT INTO arabicbot_settings  (ownerId,targetChannel,currentQuestion,payload,value,interval,admins) VALUES (?,?,?,?,?,?,?)",
+           ownerId, targetChannel, 10,'', '{}', interval,admin)
+    #settings =  botSettings(1,681085330493145093,681323265297612869,10,'',1,"{}",admin );
+    #await settings.pushChanges();
+    #print('Stopping bot...')
+    #settings.admins.append(int(12345))
+    #await settings.pushChanges()
+    await asyncio.gather(client.start(conf.TOKEN), postSomething())
+
 
 
 client = MyClient()

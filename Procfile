@@ -1,0 +1,1 @@
+worker: python arabic_bot.py
