@@ -412,12 +412,16 @@ async def main():
     #print(await readAllSQL("select * from arabicbot_question"))
     print('Starting bot...')
     settings_counts= len(await readAllSQL("select * from arabicbot_settings"))
+    print(conf.OWNERID)
+    print(conf.CHANNELID)
+    print(conf.INTERVAL)
+    #print(conf.TOKEN)
     if settings_counts == 0:
         id=1
         ownerId = conf.OWNERID
         targetChannel = conf.CHANNELID
         interval = conf.INTERVAL
-        admin = [conf.OWNERID]
+        admin = '[' + str(conf.OWNERID) + ']'
         await execSQL(
         "INSERT INTO arabicbot_settings  (ownerId,targetChannel,currentQuestion,payload,value,interval,admins) VALUES (?,?,?,?,?,?,?)",
            ownerId, targetChannel, 10,'', '{}', interval,admin)
