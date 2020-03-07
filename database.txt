@@ -1,0 +1,3 @@
+﻿How are you?-> كيف حالك
+Where are you from?-> من أين انت
+I want to fight you-> اريد ان اقاتلك

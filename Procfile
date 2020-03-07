@@ -1,1 +1,1 @@
-worker: python arabic_bot.py
+worker: python bot.py
