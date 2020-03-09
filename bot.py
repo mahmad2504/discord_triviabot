@@ -19,13 +19,12 @@ from discord.member import Member
 from signal import signal, SIGINT
 from sys import exit
 
-#TOKEN ='NjgyNjIyNjU5NTI3NDQyNDcy.XmJEXg.MlzSvOa-Tlb2cRrfJ0_z23Lr0EY'
-TOKEN = 'NjYxODM0NDM5OTkwNzA2MTc2.XmPImQ.i-IqRBl3h4mvLzcInK-RELFbs_0'
-ADMIN_ID=242088952427839498
-TIME_OUT=60  #SECOND
-instances = {};
-#GUILD='681323263665635359'
 
+TOKEN=os.environ['DISCORD_TOKEN']
+ADMIN_ID=os.environ['ADMIN_ID']
+ADMIN_ID2=os.environ['ADMIN_ID2']
+TIME_OUT=2000  #SECOND
+instances = {};
 
 def handler(signal_received, frame):
     # Handle any cleanup here
@@ -92,17 +91,23 @@ async def CreateInstance(channel):
     
 async def CheckAnswer(instance,message):
     actualanswer = instance['question'][3]
-    print(actualanswer)
-    if message.content == actualanswer or \
-                                message.content.replace("؟", "?") == actualanswer \
-                                or message.content.replace("?", "؟") == actualanswer:
+    #print(actualanswer)
+    if message.content.lower() == actualanswer.lower() or \
+                                message.content.replace("؟", "?").lower() == actualanswer.lower() \
+                                or message.content.replace("?", "؟").lower() == actualanswer.lower():
         await message.add_reaction('\N{Thumbs Up Sign}')
         return 1
     return 0
     #await message.channel.send(actualanswer);   
     #await message.add_reaction('\N{Thumbs Up Sign}')
 
+
+async def ClearScore(instance):
+    instance['score'] = {}
+    await UpdateScore(instance,None)
+    
 async def UpdateScore(instance,author):
+    if author is not None:
     if author in instance['score'].keys(): 
         instance['score'][author] = instance['score'][author] + 1
     else:
@@ -121,7 +126,7 @@ async def UpdateScore(instance,author):
     for adding in whatToAdd:
         await adding
                                 
-    print(instance_str);
+    #print(instance_str);
    
  
 async def SetQuestion(instance):
@@ -242,14 +247,16 @@ class MyClient(discord.Client):
                 if instance is not None:
                     if IsActive(instance):
                         score = await CheckAnswer(instance,message)
-                        await UpdateScore(instance,message.author.name);
                         if score==1:
+                            await UpdateScore(instance,message.author.name);
                             await SetQuestion(instance);
                             ExpireTimer(instance);
-                
-            if message.author.id  == ADMIN_ID:
+            if str(message.author.id)  == str(ADMIN_ID) or str(message.author.id)  == str(ADMIN_ID2):
                 if message.attachments:
                     await HandleFileUploadCommand(message);
+                elif '/clearscore' in message.content:
+                    await ClearScore(instance)
+                    await message.channel.send('Scores are successfully deleted')
                 elif '/interval' in message.content:
                     if instance is None:
                         await message.channel.send('No Trivia is loaded')
@@ -262,7 +269,7 @@ class MyClient(discord.Client):
                     await message.channel.send('Timeout set to '+targetTime+' sec')
                     
 async def HandleFileUploadCommand(message):
-    print("Command::File Upload")
+    #print("Command::File Upload")
     if message.attachments:
         attachment = message.attachments[0]
         if not attachment.filename.endswith('.txt'):
@@ -277,15 +284,15 @@ async def HandleFileUploadCommand(message):
         questions_table="question_"+str(message.channel.id)
         settings_table="settings_"+str(message.channel.id)
         
-        #await execSQL(
-        #"create table if not exists "+questions_table+" (inDbId INTEGER DEFAULT "
-        #"0 primary key autoincrement , number INTEGER , "
-        #"`question` STRING DEFAULT '', `answer` STRING DEFAULT '')")
+        await execSQL(
+        "create table if not exists "+questions_table+" (inDbId INTEGER DEFAULT "
+        "0 primary key autoincrement , number INTEGER , "
+        "`question` STRING DEFAULT '', `answer` STRING DEFAULT '')")
         
-        #await execSQL(
-        #"create table if not exists "+settings_table+" (inDbId INTEGER DEFAULT "
-        #"0 primary key autoincrement ,"
-        #"`scores` STRING DEFAULT '', `time_out` INTEGER DEFAULT 60)")
+        await execSQL(
+        "create table if not exists "+settings_table+" (inDbId INTEGER DEFAULT "
+        "0 primary key autoincrement ,"
+        "`settings` STRING DEFAULT '')")
         
         
         for row in rows:
@@ -320,7 +327,7 @@ async def HandleFileUploadCommand(message):
         for adding in whatToAdd:
             await adding
         
-        await message.channel.send("Trivia quis uploaded")
+        await message.channel.send("Trivia quiz uploaded")
         await message.channel.send("Type /start to start trivia quiz")
     else:
         await message.channel.send('No file attached.')
@@ -352,8 +359,8 @@ print("Starting Bot script", scriptName)
 dbConnection = sqlite3.connect(f"data_{scriptName}.db", isolation_level=None, check_same_thread=False)
 
 
-def watchdog():
-  print('Watchdog expired. Exiting...')
+#def watchdog():
+#  print('Watchdog expired. Exiting...')
   
 
 #alarm = threading.Timer(3, watchdog)
